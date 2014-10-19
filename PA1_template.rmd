@@ -1,0 +1,103 @@
+#Reproducible Code - Assignment 1
+
+####Load data
+
+```{r}
+library(lattice)
+a1<-read.csv("activity.csv",header=TRUE)
+str(a1)
+
+```
+####Part 1 What is mean total number of steps taken per day?    
+-histogram of the total number of steps taken each day  
+-agg_mean: mean total number of steps taken per day  
+-agg_median:median total number of steps taken per day  
+
+```{r}
+agg_sum<-aggregate(a1$steps,list(dat=a1$date), FUN=sum, na.rm=TRUE)
+agg_sum
+
+hist(agg_sum$x,main=paste("Histogram of  total number of steps taken each day"),xlab=paste("Sum of steps each day"))
+
+agg_mean<-aggregate(a1$steps,list(dat=a1$date), FUN=mean, na.rm=TRUE)
+agg_mean
+
+agg_median<-aggregate(a1$steps,by=list(dat=a1$date), FUN=median, na.rm=TRUE)
+agg_median
+
+```
+####Part 2  What is the average daily activity pattern?  
+-Time Series Plot of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis)  
+-max_steps:Interval with Max steps 
+
+```{r plot, fig.width=5, fig.height=5}
+
+agg_mean_ti<-aggregate(a1$steps,list(interval=a1$interval), FUN=mean, na.rm=TRUE)
+plot(agg_mean_ti$interval,agg_mean_ti$x, xlab=paste("Time interval"),ylab=paste("Average number of steps across all days"), main="Time Series Plot", type="l")
+
+max_steps<-agg_mean_ti$interval[which.max(agg_mean_ti$x)]
+max_steps
+
+```
+####Part 3  Imputing Missing Values  
+-num_na:Number of missing values (NA) 
+
+Strategy  
+-Merged original data set with interval means data frame (agg_mean_ti) to replace NA steps for an interval with mean for that interval. 
+-assigned the mean to the NA values for that interval in the new merged dataframe
+-dropped the merged "means" column to have the same number of columns as original data set but with NAs replaced with the mean.   New data frame is a1_new  
+
+-plot histogram of total number of steps each day (new data frame, a1_new has no NA for steps)  
+
+new_mean: New mean after imputing missing values
+new_median: New median after imputing missing values
+new_sum:New median after imputing missing values
+
+Effect on mean: No difference  
+Effect on median: Yes, those that showed as NA for orginal, new had a value. Others remained same  
+Effect on total number of steps: Yes, sum had higher values for the those dates that had NA before. Other dates that did not have  NA before had no effect in the new data frame  
+
+```{r}
+
+num_na<- sum(is.na(a1))
+num_na
+
+a12=a12<-merge(a1,agg_mean_ti,"interval")
+str(a12)
+
+a12$steps[is.na(a12$steps)]=a12$x[is.na(a12$steps)]
+
+keep<-c("steps","date","interval")
+a1_new<-a12[,keep]
+str(a1_new)
+
+new_sum<-aggregate(a1_new$steps,list(dat=a1_new$date), FUN=sum)
+new_sum
+
+hist(new_sum$x,main=paste("#2 Histogram of  total number of steps taken each day"),xlab=paste("Sum of steps each day"))
+
+new_mean<-aggregate(a1_new$steps,list(dat=a1_new$date), FUN=mean)
+new_mean
+
+new_median<-aggregate(a1_new$steps,by=list(dat=a1_new$date), FUN=median)
+new_median
+
+
+```
+####Part 4: Are there differences in activity patterns between weekdays and weekends?
+
+-data frame a13 has additional column/variable wknd to show weekend or weekday  
+-panel plot to show average number of steps taken by weekend/weekday
+
+
+```{r, fig.width=7, fig.height=6}
+
+a13=a1_new
+a13$wknd<-ifelse(!weekdays(as.Date(a13$date)) %in% c("Saturday","Sunday"),"weekday","weekend")
+str(a13)
+
+avg_wd_we<-aggregate(a13$steps,list(interval=a13$interval,wknd=a13$wknd), FUN=mean)
+
+xyplot(avg_wd_we$x~avg_wd_we$interval|avg_wd_we$wknd, type="l", main="Average number of steps by weekday/weekend", xlab="number of intervals", ylab="Average number of steps")
+
+```
